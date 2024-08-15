@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MapView, { Marker } from 'react-native-maps';
-import { Button, StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import * as Location from 'expo-location';
 import { SearchBar } from '@rneui/themed';
+import Icon from 'react-native-vector-icons/Ionicons'; // Import the Ionicons icon set
 
 export default function App() {
   const [location, setLocation] = useState(null);
   const [search, setSearch] = useState('');
+  const mapRef = useRef(null);
 
   const userlocation = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
@@ -15,14 +17,18 @@ export default function App() {
       return;
     }
     let location = await Location.getCurrentPositionAsync({ enableHighAccuracy: true });
-    setLocation({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      latitudeDelta: 0.04, // Ajustement pour un zoom plus serré
-      longitudeDelta: 0.01
-    });
-    
-    console.log(location);
+    const { latitude, longitude } = location.coords;
+    const newLocation = {
+      latitude,
+      longitude,
+      latitudeDelta: 0.04,
+      longitudeDelta: 0.01,
+    };
+    setLocation(newLocation);
+
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(newLocation, 1000);
+    }
   };
 
   useEffect(() => {
@@ -31,19 +37,24 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <MapView 
+      <MapView
+        ref={mapRef}
         style={styles.map}
+        initialRegion={{
+          latitude: 45.5017,
+          longitude: -73.5673,
+          latitudeDelta: 0.04,
+          longitudeDelta: 0.01,
+        }}
         region={location}
-        onRegionChangeComplete={region => setLocation(region)}
       >
         {location && (
-          <Marker 
+          <Marker
             coordinate={{
               latitude: location.latitude,
               longitude: location.longitude,
             }}
-            title="Vous êtes ici" 
-            description="Position actuelle" 
+            title="Vous êtes ici"
           />
         )}
       </MapView>
@@ -56,11 +67,17 @@ export default function App() {
         />
       </View>
       <View style={styles.ListButton}>
-        <Button title="Liste" onPress={() => console.log('Liste')} />
+        <TouchableOpacity style={styles.button} onPress={() => console.log('Liste')}>
+          <Icon name="list" size={20} color="white" />
+        </TouchableOpacity>
       </View>
       <View style={styles.buttonContainer}>
-        <Button title="user" onPress={userlocation} />
-        <Button title="traject" onPress={() => console.log('Trajectoire')} />
+        <TouchableOpacity style={styles.button} onPress={userlocation}>
+          <Icon name="locate" size={35} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => console.log('Trajectoire')}>
+          <Icon name="map" size={35} color="white" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -83,13 +100,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 50,
     right: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Pour rendre le fond du bouton un peu opaque
-    borderRadius: 5,
-    padding: 5,
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between',
-    gap: 5,
+    gap: 7,
+  },
+  button: {
+    backgroundColor: '#84bcff',
+    borderRadius: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    marginBottom: 5,
+    elevation: 2,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   searchContainer: {
     position: 'absolute',
